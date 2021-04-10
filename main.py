@@ -65,61 +65,159 @@ tracking_grid = Grid(
 game_state = BattleshipGameState()
 
 # TODO add a placement phase instead of hardcoding
-our_ship1 = game_state.place_ship(
-    top_row_idx=0,
-    left_col_idx=0,
-    ship_width=1,
-    ship_height=3,
-    ship_value=1,
-    is_our_ship=True,
-)
-assert our_ship1
-bad_ship1 = game_state.place_ship(
-    top_row_idx=0,
-    left_col_idx=1,
-    ship_width=1,
-    ship_height=3,
-    ship_value=101,
-    is_our_ship=True,
-)
-assert not bad_ship1
-our_ship2 = game_state.place_ship(
-    top_row_idx=0,
-    left_col_idx=2,
-    ship_width=1,
-    ship_height=2,
-    ship_value=2,
-    is_our_ship=True,
-)
-assert our_ship2
-bad_ship2 = game_state.place_ship(
-    top_row_idx=3,
-    left_col_idx=0,
-    ship_width=3,
-    ship_height=1,
-    ship_value=102,
-    is_our_ship=True,
-)
-assert not bad_ship2
-our_ship3 = game_state.place_ship(
-    top_row_idx=4,
-    left_col_idx=0,
-    ship_width=3,
-    ship_height=1,
-    ship_value=3,
-    is_our_ship=True,
-)
-assert our_ship3
+def hardcoded_test_placement():
+    our_ship1 = game_state.place_ship(
+        top_row_idx=0,
+        left_col_idx=0,
+        ship_width=1,
+        ship_height=3,
+        ship_value=1,
+        is_our_ship=True,
+    )
+    assert our_ship1
+    bad_ship1 = game_state.place_ship(
+        top_row_idx=0,
+        left_col_idx=1,
+        ship_width=1,
+        ship_height=3,
+        ship_value=101,
+        is_our_ship=True,
+    )
+    assert not bad_ship1
+    our_ship2 = game_state.place_ship(
+        top_row_idx=0,
+        left_col_idx=2,
+        ship_width=1,
+        ship_height=2,
+        ship_value=2,
+        is_our_ship=True,
+    )
+    assert our_ship2
+    bad_ship2 = game_state.place_ship(
+        top_row_idx=3,
+        left_col_idx=0,
+        ship_width=3,
+        ship_height=1,
+        ship_value=102,
+        is_our_ship=True,
+    )
+    assert not bad_ship2
+    our_ship3 = game_state.place_ship(
+        top_row_idx=4,
+        left_col_idx=0,
+        ship_width=3,
+        ship_height=1,
+        ship_value=3,
+        is_our_ship=True,
+    )
+    assert our_ship3
 
-opponent_ship1 = game_state.place_ship(
-    top_row_idx=0,
-    left_col_idx=0,
-    ship_width=1,
-    ship_height=3,
-    ship_value=1,
-    is_our_ship=False,
-)
-assert opponent_ship1
+    opponent_ship1 = game_state.place_ship(
+        top_row_idx=0,
+        left_col_idx=0,
+        ship_width=1,
+        ship_height=3,
+        ship_value=1,
+        is_our_ship=False,
+    )
+    assert opponent_ship1
+
+
+def hardcoded_real_placement(state):
+    our_ship1 = state.place_ship(
+        top_row_idx=2,
+        left_col_idx=0,
+        ship_width=1,
+        ship_height=5,
+        ship_value=1,
+        is_our_ship=True,
+    )
+    assert our_ship1
+    our_ship2 = state.place_ship(
+        top_row_idx=2,
+        left_col_idx=4,
+        ship_width=1,
+        ship_height=4,
+        ship_value=2,
+        is_our_ship=True,
+    )
+    assert our_ship2
+    our_ship3 = state.place_ship(
+        top_row_idx=0,
+        left_col_idx=3,
+        ship_width=3,
+        ship_height=1,
+        ship_value=3,
+        is_our_ship=True,
+    )
+    assert our_ship3
+    our_ship4 = state.place_ship(
+        top_row_idx=6,
+        left_col_idx=8,
+        ship_width=1,
+        ship_height=3,
+        ship_value=4,
+        is_our_ship=True,
+    )
+    assert our_ship4
+    our_ship5 = state.place_ship(
+        top_row_idx=8,
+        left_col_idx=5,
+        ship_width=2,
+        ship_height=1,
+        ship_value=5,
+        is_our_ship=True,
+    )
+    assert our_ship5
+
+    opponent_ship1 = state.place_ship(
+        top_row_idx=2,
+        left_col_idx=3,
+        ship_width=5,
+        ship_height=1,
+        ship_value=1,
+        is_our_ship=False,
+    )
+    assert opponent_ship1
+    opponent_ship2 = state.place_ship(
+        top_row_idx=4,
+        left_col_idx=5,
+        ship_width=1,
+        ship_height=4,
+        ship_value=2,
+        is_our_ship=False,
+    )
+    assert opponent_ship2
+    opponent_ship3 = state.place_ship(
+        top_row_idx=1,
+        left_col_idx=0,
+        ship_width=1,
+        ship_height=3,
+        ship_value=3,
+        is_our_ship=False,
+    )
+    assert opponent_ship3
+    opponent_ship4 = state.place_ship(
+        top_row_idx=7,
+        left_col_idx=8,
+        ship_width=1,
+        ship_height=3,
+        ship_value=4,
+        is_our_ship=False,
+    )
+    assert opponent_ship4
+    opponent_ship5 = state.place_ship(
+        top_row_idx=0,
+        left_col_idx=5,
+        ship_width=2,
+        ship_height=1,
+        ship_value=5,
+        is_our_ship=False,
+    )
+    assert opponent_ship5
+
+
+hardcoded_real_placement(game_state)
 
 # initialize the grids after placement phase
 new_home_grid = game_state.get_player_home_grid()
@@ -142,12 +240,18 @@ is_running = True
 while is_running:
     time_delta = clock.tick(30) / 1000.0
 
-    # if game_state.is_game_over():
-    #     home_grid.disable_board_buttons()
-    #     tracking_grid.disable_board_buttons()
-    # elif game_state.is_my_turn:
-    #     home_grid.disable_board_buttons()
-    #     tracking_grid.enable_board_buttons()
+    # disable buttons based on whose turn it is
+    # TODO why does the opposite grid's button theme/color change when a player scores a hit 
+    # (but the turn hasn't finished)
+    if game_state.is_game_over:
+        home_grid.disable_board_buttons()
+        tracking_grid.disable_board_buttons()
+    elif game_state.is_my_turn:
+        home_grid.disable_board_buttons()
+        tracking_grid.enable_board_buttons()
+    else:
+        home_grid.enable_board_buttons()
+        tracking_grid.disable_board_buttons()
 
     for event in pygame.event.get():
         if event.type == pygame.QUIT:
@@ -178,17 +282,9 @@ while is_running:
                     else:
                         print(f"not the opponent's turn!")
 
-                if game_state.is_game_over:
-                    home_grid.disable_board_buttons()
-                    tracking_grid.disable_board_buttons()
-                elif game_state.is_my_turn:
-                    home_grid.disable_board_buttons()
-                    tracking_grid.enable_board_buttons()
-                else:
-                    home_grid.enable_board_buttons()
-                    tracking_grid.disable_board_buttons()
-
         manager.process_events(event)
+
+    
 
     manager.update(time_delta)
 

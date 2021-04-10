@@ -22,6 +22,14 @@ class GameGrid:
         return self._grid.__repr__()
 
     @property
+    def num_rows(self) -> int:
+        return self._num_rows
+
+    @property
+    def num_cols(self) -> int:
+        return self._num_cols
+
+    @property
     def grid(self) -> List[List]:
         return self._grid
 

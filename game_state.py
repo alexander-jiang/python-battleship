@@ -1,12 +1,13 @@
 from tabulate import tabulate
 from game_grid import GameGrid
-from typing import Optional, List
+from typing import Optional, List, Tuple
 
 
 SHIP_LOCATION_EMPTY = 0
 LOCATION_NOT_GUESSED = None
 LOCATION_GUESS_MISS = False
 LOCATION_GUESS_HIT = True
+STANDARD_SHIP_DIMENSIONS = [(5, 1), (4, 1), (3, 1), (3, 1), (2, 1)]
 
 
 class BattleshipGameState:
@@ -19,6 +20,7 @@ class BattleshipGameState:
         opponent_ship_locations: Optional[List[List]] = None,
         our_guesses: Optional[List[List]] = None,
         opponent_guesses: Optional[List[List]] = None,
+        ships_dimensions: Optional[List[Tuple[int, int]]] = None,
     ):
         self.is_my_turn = is_my_turn
         self.is_game_over = False
@@ -47,9 +49,20 @@ class BattleshipGameState:
         if opponent_guesses is not None:
             self.opponent_guesses.update_entire_grid(opponent_guesses)
 
-        # TODO track which ships are still alive for us and our opponent
+        # track which ships are still alive for us and our opponent
+        if ships_dimensions is None:
+            ship_dimensions_to_use = STANDARD_SHIP_DIMENSIONS
+        else:
+            ship_dimensions_to_use = ships_dimensions
 
-        # TODO how to specify ship sizes (for placement)?
+        # lists of tuples: ship value in the grid, and the dimensions of the ship
+        self.our_ships = []
+        self.opponent_ships = []
+        next_ship_number = 1
+        for ship_dims in ship_dimensions_to_use:
+            self.our_ships.append((next_ship_number, ship_dims))
+            self.opponent_ships.append((next_ship_number, ship_dims))
+            next_ship_number += 1
 
     def place_ship(
         self,
@@ -60,9 +73,28 @@ class BattleshipGameState:
         ship_value,
         is_our_ship: bool,
     ) -> bool:
-        # TODO check if the ship placement overlaps with a buffer! (can do neighboring check for each)
+        # ship dimensions must not be 0
+        assert ship_width > 0 and ship_height > 0
+
+        # check if the ship placement overlaps with a buffer! (can do neighboring check for each)
         bottom_row_idx = top_row_idx + ship_height - 1
         right_col_idx = left_col_idx + ship_width - 1
+
+        # check if ship placement has an invalid coordinates
+        for row_idx in range(top_row_idx, bottom_row_idx + 1):
+            for col_idx in range(left_col_idx, right_col_idx + 1):
+                print(f"checking coordinates ({row_idx}, {col_idx})")
+                if is_our_ship and not self.our_ship_locations.are_indexes_valid(
+                    row_idx, col_idx
+                ):
+                    return False
+                elif (
+                    not is_our_ship
+                    and not self.opponent_ship_locations.are_indexes_valid(
+                        row_idx, col_idx
+                    )
+                ):
+                    return False
 
         top_buffer_row_idx = max(0, top_row_idx - 1)
         bottom_buffer_row_idx = min(self.num_rows - 1, bottom_row_idx + 1)
@@ -70,18 +102,9 @@ class BattleshipGameState:
         right_buffer_row_idx = min(self.num_cols - 1, right_col_idx + 1)
         for row_idx in range(top_buffer_row_idx, bottom_buffer_row_idx + 1):
             for col_idx in range(left_buffer_row_idx, right_buffer_row_idx + 1):
-                # Note that read_grid implicitly checks that the indexes are valid
                 if is_our_ship:
-                    if not self.our_ship_locations.are_indexes_valid(row_idx, col_idx):
-                        # can't place ship because the indexes are invalid
-                        return False
                     ship_loc_value = self.our_ship_locations.read_grid(row_idx, col_idx)
                 else:
-                    if not self.opponent_ship_locations.are_indexes_valid(
-                        row_idx, col_idx
-                    ):
-                        # can't place ship because the indexes are invalid
-                        return False
                     ship_loc_value = self.opponent_ship_locations.read_grid(
                         row_idx, col_idx
                     )
@@ -104,9 +127,56 @@ class BattleshipGameState:
 
         return True
 
-    def check_placements_ready(self):
-        # TODO not only check if placements are valid, but check that both players have placed all available ships
-        raise NotImplementedError
+    def check_placements_ready(self) -> bool:
+        # not only check if placements are valid, but check that both players have placed all available ships
+        for ship_value, ship_dims in self.our_ships:
+            if not self._is_valid_ship_placement(
+                self.our_ship_locations, ship_value, ship_dims
+            ):
+                return False
+        for ship_value, ship_dims in self.opponent_ships:
+            if not self._is_valid_ship_placement(
+                self.opponent_ship_locations, ship_value, ship_dims
+            ):
+                return False
+        return True
+
+    def _is_valid_ship_placement(
+        self, ship_locations_grid: GameGrid, ship_value, ship_dims: Tuple[int, int]
+    ):
+        # ship dimensions must not be 0
+        assert ship_dims[0] > 0 and ship_dims[1] > 0
+
+        # make sure the ship is located, and the dimensions match
+        # 1. check the count of locations vs. dimensions
+        # 2. check the bounds of dimensions (min and max, x and y)
+        min_row_idx, max_row_idx = None, None
+        min_col_idx, max_col_idx = None, None
+        count_ship_value = 0
+        for row_idx in range(self.num_rows):
+            for col_idx in range(self.num_cols):
+                if ship_locations_grid.read_grid(row_idx, col_idx) == ship_value:
+                    count_ship_value += 1
+                    if min_row_idx is None or row_idx < min_row_idx:
+                        min_row_idx = row_idx
+                    if max_row_idx is None or row_idx > max_row_idx:
+                        max_row_idx = row_idx
+                    if min_col_idx is None or col_idx < min_col_idx:
+                        min_col_idx = col_idx
+                    if max_col_idx is None or col_idx > max_col_idx:
+                        max_col_idx = col_idx
+
+        # make sure the correct number of squares are labeled as the ship and the dimension boundaries match
+        return ship_dims[0] * ship_dims[1] == count_ship_value and (
+            (
+                max_row_idx - min_row_idx + 1 == ship_dims[0]
+                and max_col_idx - min_col_idx + 1 == ship_dims[1]
+            )
+            or (
+                max_row_idx - min_row_idx + 1 == ship_dims[1]
+                and max_col_idx - min_col_idx + 1 == ship_dims[0]
+            )
+        )
 
     def check_ship_alive(
         self, locations_grid: GameGrid, opponents_guesses_grid: GameGrid, ship_value
