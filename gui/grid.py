@@ -59,7 +59,7 @@ class Grid:
         return None
 
     def update_button_text(self, row_idx: int, col_idx: int, new_text: str):
-        # TODO check indexes are in bounds
+        assert 0 <= row_idx < self.num_rows and 0 <= col_idx < self.num_cols
         self._board_buttons[row_idx][col_idx].set_text(new_text)
 
     def disable_board_buttons(self):

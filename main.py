@@ -1,7 +1,13 @@
 import pygame
 import pygame_gui
+import random
 from gui.grid import Grid
-from game_state import BattleshipGameState
+from game_state import (
+    BattleshipGameState,
+    STANDARD_SHIP_DIMENSIONS,
+    SHIP_LOCATION_EMPTY,
+)
+from ship_placement import random_ships_placement
 
 
 display_w = 800
@@ -59,165 +65,70 @@ tracking_grid = Grid(
     initial_text="",
 )
 
-# TODO add labels for the home/tracking grid
+# add labels for the home/tracking grid
+label_height = 50
+home_grid_label = pygame_gui.elements.UILabel(
+    relative_rect=pygame.Rect(
+        (
+            home_grid_left,
+            home_grid_top - label_height,
+        ),
+        (home_grid_right - home_grid_left, label_height),
+    ),
+    text="Home Grid",
+    manager=manager,
+)
+tracking_grid_label = pygame_gui.elements.UILabel(
+    relative_rect=pygame.Rect(
+        (
+            tracking_grid_left,
+            tracking_grid_top - label_height,
+        ),
+        (tracking_grid_right - tracking_grid_left, label_height),
+    ),
+    text="Tracking Grid",
+    manager=manager,
+)
+game_status_label = pygame_gui.elements.UILabel(
+    relative_rect=pygame.Rect(
+        (
+            0,
+            0,
+        ),
+        (display_w, label_height),
+    ),
+    text="",
+    manager=manager,
+)
+
 
 # initialize game state
 game_state = BattleshipGameState()
 
-# TODO add a placement phase instead of hardcoding
-def hardcoded_test_placement():
-    our_ship1 = game_state.place_ship(
-        top_row_idx=0,
-        left_col_idx=0,
-        ship_width=1,
-        ship_height=3,
-        ship_value=1,
-        is_our_ship=True,
-    )
-    assert our_ship1
-    bad_ship1 = game_state.place_ship(
-        top_row_idx=0,
-        left_col_idx=1,
-        ship_width=1,
-        ship_height=3,
-        ship_value=101,
-        is_our_ship=True,
-    )
-    assert not bad_ship1
-    our_ship2 = game_state.place_ship(
-        top_row_idx=0,
-        left_col_idx=2,
-        ship_width=1,
-        ship_height=2,
-        ship_value=2,
-        is_our_ship=True,
-    )
-    assert our_ship2
-    bad_ship2 = game_state.place_ship(
-        top_row_idx=3,
-        left_col_idx=0,
-        ship_width=3,
-        ship_height=1,
-        ship_value=102,
-        is_our_ship=True,
-    )
-    assert not bad_ship2
-    our_ship3 = game_state.place_ship(
-        top_row_idx=4,
-        left_col_idx=0,
-        ship_width=3,
-        ship_height=1,
-        ship_value=3,
-        is_our_ship=True,
-    )
-    assert our_ship3
-
-    opponent_ship1 = game_state.place_ship(
-        top_row_idx=0,
-        left_col_idx=0,
-        ship_width=1,
-        ship_height=3,
-        ship_value=1,
+available_squares = []
+for r in range(game_state.num_rows):
+    row = []
+    for c in range(game_state.num_cols):
+        row.append(True)
+    available_squares.append(row)
+opponent_ship_placements = random_ships_placement(
+    STANDARD_SHIP_DIMENSIONS,
+    available_squares=available_squares,
+    num_rows=game_state.num_rows,
+    num_cols=game_state.num_cols,
+    rotate_allowed=True,
+)
+for idx in range(len(opponent_ship_placements)):
+    ship_placement = opponent_ship_placements[idx]
+    top_row_idx, left_col_idx, ship_height, ship_width = ship_placement
+    game_state.place_ship(
+        top_row_idx=top_row_idx,
+        left_col_idx=left_col_idx,
+        ship_width=ship_width,
+        ship_height=ship_height,
+        ship_value=idx + 1,
         is_our_ship=False,
     )
-    assert opponent_ship1
-
-
-def hardcoded_real_placement(state):
-    our_ship1 = state.place_ship(
-        top_row_idx=2,
-        left_col_idx=0,
-        ship_width=1,
-        ship_height=5,
-        ship_value=1,
-        is_our_ship=True,
-    )
-    assert our_ship1
-    our_ship2 = state.place_ship(
-        top_row_idx=2,
-        left_col_idx=4,
-        ship_width=1,
-        ship_height=4,
-        ship_value=2,
-        is_our_ship=True,
-    )
-    assert our_ship2
-    our_ship3 = state.place_ship(
-        top_row_idx=0,
-        left_col_idx=3,
-        ship_width=3,
-        ship_height=1,
-        ship_value=3,
-        is_our_ship=True,
-    )
-    assert our_ship3
-    our_ship4 = state.place_ship(
-        top_row_idx=6,
-        left_col_idx=8,
-        ship_width=1,
-        ship_height=3,
-        ship_value=4,
-        is_our_ship=True,
-    )
-    assert our_ship4
-    our_ship5 = state.place_ship(
-        top_row_idx=8,
-        left_col_idx=5,
-        ship_width=2,
-        ship_height=1,
-        ship_value=5,
-        is_our_ship=True,
-    )
-    assert our_ship5
-
-    opponent_ship1 = state.place_ship(
-        top_row_idx=2,
-        left_col_idx=3,
-        ship_width=5,
-        ship_height=1,
-        ship_value=1,
-        is_our_ship=False,
-    )
-    assert opponent_ship1
-    opponent_ship2 = state.place_ship(
-        top_row_idx=4,
-        left_col_idx=5,
-        ship_width=1,
-        ship_height=4,
-        ship_value=2,
-        is_our_ship=False,
-    )
-    assert opponent_ship2
-    opponent_ship3 = state.place_ship(
-        top_row_idx=1,
-        left_col_idx=0,
-        ship_width=1,
-        ship_height=3,
-        ship_value=3,
-        is_our_ship=False,
-    )
-    assert opponent_ship3
-    opponent_ship4 = state.place_ship(
-        top_row_idx=7,
-        left_col_idx=8,
-        ship_width=1,
-        ship_height=3,
-        ship_value=4,
-        is_our_ship=False,
-    )
-    assert opponent_ship4
-    opponent_ship5 = state.place_ship(
-        top_row_idx=0,
-        left_col_idx=5,
-        ship_width=2,
-        ship_height=1,
-        ship_value=5,
-        is_our_ship=False,
-    )
-    assert opponent_ship5
-
-
-hardcoded_real_placement(game_state)
 
 # initialize the grids after placement phase
 new_home_grid = game_state.get_player_home_grid()
@@ -226,39 +137,153 @@ home_grid.update_board_text(new_home_grid)
 tracking_grid.update_board_text(new_tracking_grid)
 
 # disable grid based on which player's turn it is
-if game_state.is_my_turn:
+if not game_state.ships_placed:
+    game_status_label.set_text("Place your ships!")
+    home_grid.enable_board_buttons()
+    tracking_grid.disable_board_buttons()
+elif game_state.is_my_turn:
+    game_status_label.set_text("Your turn!")
     home_grid.disable_board_buttons()
     tracking_grid.enable_board_buttons()
 else:
-    home_grid.enable_board_buttons()
+    game_status_label.set_text("Opponent's turn!")
+    home_grid.disable_board_buttons()
     tracking_grid.disable_board_buttons()
 
 clock = pygame.time.Clock()
 is_running = True
 
+ship_dimensions = STANDARD_SHIP_DIMENSIONS.copy()
+next_ship_index = 0
+
+# delay counter for computer's turn
+thinking_delay = 0
 
 while is_running:
     time_delta = clock.tick(30) / 1000.0
 
     # disable buttons based on whose turn it is
-    # TODO why does the opposite grid's button theme/color change when a player scores a hit 
+    # TODO why does the opposite grid's button theme/color change when a player scores a hit
     # (but the turn hasn't finished)
     if game_state.is_game_over:
+        game_status_label.set_text("Game over!")
         home_grid.disable_board_buttons()
         tracking_grid.disable_board_buttons()
+    elif not game_state.ships_placed:
+        game_status_label.set_text("Place your ships!")
+        home_grid.enable_board_buttons()
+        tracking_grid.disable_board_buttons()
     elif game_state.is_my_turn:
+        game_status_label.set_text("Your turn!")
         home_grid.disable_board_buttons()
         tracking_grid.enable_board_buttons()
     else:
-        home_grid.enable_board_buttons()
+        # disable buttons and allow computer to move
+        game_status_label.set_text("Opponent's turn!")
+        home_grid.disable_board_buttons()
         tracking_grid.disable_board_buttons()
+        if thinking_delay <= 0:
+            thinking_delay = 15
+
+        thinking_delay -= 1
+        if not game_state.is_my_turn and thinking_delay <= 0:
+            row_idx = random.randrange(game_state.num_rows)
+            col_idx = random.randrange(game_state.num_cols)
+            print(f"computer guesses ({row_idx}, {col_idx})")
+
+            game_state.call_square(row_idx, col_idx)
+            new_home_grid = game_state.get_player_home_grid()
+            new_tracking_grid = game_state.get_player_tracking_grid()
+            home_grid.update_board_text(new_home_grid)
+            tracking_grid.update_board_text(new_tracking_grid)
+            thinking_delay = 0
 
     for event in pygame.event.get():
         if event.type == pygame.QUIT:
             is_running = False
 
         if event.type == pygame.USEREVENT:
-            if event.user_type == pygame_gui.UI_BUTTON_PRESSED:
+            if not game_state.ships_placed and home_grid.is_element_on_board(
+                event.ui_element
+            ):
+                if event.user_type == pygame_gui.UI_BUTTON_ON_UNHOVERED:
+                    row_idx, col_idx = home_grid.get_element_index(event.ui_element)
+                    for r in range(
+                        row_idx,
+                        min(
+                            game_state.num_rows,
+                            row_idx + ship_dimensions[next_ship_index][1],
+                        ),
+                    ):
+                        for c in range(
+                            col_idx,
+                            min(
+                                game_state.num_cols,
+                                col_idx + ship_dimensions[next_ship_index][0],
+                            ),
+                        ):
+                            ship_loc_value = game_state.our_ship_locations.read_grid(
+                                r, c
+                            )
+                            if ship_loc_value == SHIP_LOCATION_EMPTY:
+                                home_grid.update_button_text(r, c, new_text="")
+                            else:
+                                home_grid.update_button_text(
+                                    r, c, new_text=str(ship_loc_value)
+                                )
+                if event.user_type == pygame_gui.UI_BUTTON_ON_HOVERED:
+                    row_idx, col_idx = home_grid.get_element_index(event.ui_element)
+                    ship_loc_value = game_state.our_ship_locations.read_grid(
+                        row_idx, col_idx
+                    )
+
+                    if ship_loc_value == SHIP_LOCATION_EMPTY:
+                        for r in range(
+                            row_idx,
+                            min(
+                                game_state.num_rows,
+                                row_idx + ship_dimensions[next_ship_index][1],
+                            ),
+                        ):
+                            for c in range(
+                                col_idx,
+                                min(
+                                    game_state.num_cols,
+                                    col_idx + ship_dimensions[next_ship_index][0],
+                                ),
+                            ):
+                                home_grid.update_button_text(
+                                    r, c, new_text=str(next_ship_index + 1)
+                                )
+                if event.user_type == pygame_gui.UI_BUTTON_PRESSED:
+                    row_idx, col_idx = home_grid.get_element_index(event.ui_element)
+                    ship_loc_value = game_state.our_ship_locations.read_grid(
+                        row_idx, col_idx
+                    )
+                    if ship_loc_value == SHIP_LOCATION_EMPTY:
+                        ship_placement_success = game_state.place_ship(
+                            row_idx,
+                            col_idx,
+                            ship_width=ship_dimensions[next_ship_index][0],
+                            ship_height=ship_dimensions[next_ship_index][1],
+                            ship_value=next_ship_index + 1,
+                            is_our_ship=True,
+                        )
+                        if ship_placement_success:
+                            next_ship_index = (next_ship_index + 1) % len(
+                                ship_dimensions
+                            )
+                            new_home_grid = game_state.get_player_home_grid()
+                            home_grid.update_board_text(new_home_grid)
+                    else:
+                        # rotate the ship
+                        rotate_success = game_state.rotate_ship_placement(
+                            game_state.our_ship_locations, ship_loc_value
+                        )
+                        if rotate_success:
+                            new_home_grid = game_state.get_player_home_grid()
+                            home_grid.update_board_text(new_home_grid)
+            elif event.user_type == pygame_gui.UI_BUTTON_PRESSED:
                 if tracking_grid.is_element_on_board(event.ui_element):
                     row_idx, col_idx = tracking_grid.get_element_index(event.ui_element)
 
@@ -283,8 +308,6 @@ while is_running:
                         print(f"not the opponent's turn!")
 
         manager.process_events(event)
-
-    
 
     manager.update(time_delta)
 

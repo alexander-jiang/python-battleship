@@ -64,6 +64,8 @@ class BattleshipGameState:
             self.opponent_ships.append((next_ship_number, ship_dims))
             next_ship_number += 1
 
+        self.ships_placed = self.check_placements_ready()
+
     def place_ship(
         self,
         top_row_idx: int,
@@ -76,6 +78,32 @@ class BattleshipGameState:
         # ship dimensions must not be 0
         assert ship_width > 0 and ship_height > 0
 
+        # check that (ship value, ship dims) match the expected ship values
+        if is_our_ship and (
+            (ship_value, (ship_height, ship_width)) not in self.our_ships
+            and (ship_value, (ship_width, ship_height)) not in self.our_ships
+        ):
+            return False
+        elif not is_our_ship and (
+            (ship_value, (ship_height, ship_width)) not in self.opponent_ships
+            and (ship_value, (ship_width, ship_height)) not in self.opponent_ships
+        ):
+            return False
+
+        # if the ship wasn't already placed, clear its old position first before placing again
+        if is_our_ship and self._is_valid_ship_placement(
+            self.our_ship_locations, ship_value, (ship_height, ship_width)
+        ):
+            self.clear_ship_placement(
+                self.our_ship_locations, ship_value, (ship_height, ship_width)
+            )
+        elif not is_our_ship and self._is_valid_ship_placement(
+            self.opponent_ship_locations, ship_value, (ship_height, ship_width)
+        ):
+            self.clear_ship_placement(
+                self.opponent_ship_locations, ship_value, (ship_height, ship_width)
+            )
+
         # check if the ship placement overlaps with a buffer! (can do neighboring check for each)
         bottom_row_idx = top_row_idx + ship_height - 1
         right_col_idx = left_col_idx + ship_width - 1
@@ -83,7 +111,6 @@ class BattleshipGameState:
         # check if ship placement has an invalid coordinates
         for row_idx in range(top_row_idx, bottom_row_idx + 1):
             for col_idx in range(left_col_idx, right_col_idx + 1):
-                print(f"checking coordinates ({row_idx}, {col_idx})")
                 if is_our_ship and not self.our_ship_locations.are_indexes_valid(
                     row_idx, col_idx
                 ):
@@ -125,6 +152,7 @@ class BattleshipGameState:
                         row_idx, col_idx, new_value=ship_value
                     )
 
+        self.ships_placed = self.check_placements_ready()
         return True
 
     def check_placements_ready(self) -> bool:
@@ -177,6 +205,64 @@ class BattleshipGameState:
                 and max_col_idx - min_col_idx + 1 == ship_dims[0]
             )
         )
+
+    def clear_ship_placement(
+        self, locations_grid: GameGrid, ship_value, ship_dims: Tuple[int, int]
+    ):
+        print(f"clearing ship placement: value = {ship_value}, dims = {ship_dims}")
+        for row_idx in range(self.num_rows):
+            for col_idx in range(self.num_cols):
+                if locations_grid.read_grid(row_idx, col_idx) == ship_value:
+                    locations_grid.update_grid(
+                        row_idx, col_idx, new_value=SHIP_LOCATION_EMPTY
+                    )
+
+    def rotate_ship_placement(self, locations_grid: GameGrid, ship_value) -> bool:
+        """
+        Rotate the ship around its top left corner. 
+        Returns False if the rotation isn't possible (and doesn't change the game state).
+        """
+        min_row_idx, max_row_idx = None, None
+        min_col_idx, max_col_idx = None, None
+        count_ship_value = 0
+        for row_idx in range(self.num_rows):
+            for col_idx in range(self.num_cols):
+                if locations_grid.read_grid(row_idx, col_idx) == ship_value:
+                    count_ship_value += 1
+                    if min_row_idx is None or row_idx < min_row_idx:
+                        min_row_idx = row_idx
+                    if max_row_idx is None or row_idx > max_row_idx:
+                        max_row_idx = row_idx
+                    if min_col_idx is None or col_idx < min_col_idx:
+                        min_col_idx = col_idx
+                    if max_col_idx is None or col_idx > max_col_idx:
+                        max_col_idx = col_idx
+
+        ship_width, ship_height = (max_col_idx - min_col_idx + 1, max_row_idx - min_row_idx + 1)
+        self.clear_ship_placement(
+            locations_grid, ship_value, ship_dims=(ship_width, ship_height)
+        )
+
+        rotate_success = self.place_ship(
+            min_row_idx,
+            min_col_idx,
+            ship_width=ship_height,
+            ship_height=ship_width,
+            ship_value=ship_value,
+            is_our_ship=True,
+        )
+        if not rotate_success:
+            self.place_ship(
+                min_row_idx,
+                min_col_idx,
+                ship_width=ship_width,
+                ship_height=ship_height,
+                ship_value=ship_value,
+                is_our_ship=True,
+            )
+            return False
+        else:
+            return True
 
     def check_ship_alive(
         self, locations_grid: GameGrid, opponents_guesses_grid: GameGrid, ship_value
@@ -282,14 +368,12 @@ class BattleshipGameState:
             == SHIP_LOCATION_EMPTY
         ):
             # The guess missed! (update strikers_guesses_grid with a miss)
-            print("guess missed!")
             strikers_guesses_grid.update_grid(
                 square_row_idx, square_col_idx, LOCATION_GUESS_MISS
             )
             return False
 
         # The guess hit! (update strikers_guesses_grid with a hit)
-        print("guess hit!")
         strikers_guesses_grid.update_grid(
             square_row_idx, square_col_idx, LOCATION_GUESS_HIT
         )
@@ -301,7 +385,6 @@ class BattleshipGameState:
             struck_locations_grid, strikers_guesses_grid, ship_that_was_hit
         ):
             # The guess sunk an ship!
-            print("ship was sunk!")
             # TODO update the struck player's alive ships
 
             # Did the guess end the game?
