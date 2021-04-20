@@ -1,5 +1,6 @@
 import click
 import random
+import time
 import seaborn as sns
 import matplotlib.pylab as plt
 import numpy as np
@@ -9,7 +10,6 @@ from game_state import STANDARD_SHIP_DIMENSIONS
 from ship_placement import random_ships_placement
 
 
-# NUM_ITERATIONS = 1_000
 NUM_ROWS = 10
 NUM_COLS = 10
 
@@ -27,18 +27,18 @@ def compute_placement_distribution(
 ) -> np.ndarray:
     sampled_placements = np.zeros((NUM_ROWS, NUM_COLS), dtype=np.uint32)
     num_samples = 0
+    start_time = time.time()
     for iter_num in range(num_iterations):
-        if (iter_num + 1) % 100 == 0:
+        if (iter_num + 1) % 10000 == 0:
             print(f"Iteration number {iter_num + 1} of {num_iterations}")
+            end_time = time.time()
+            print(f"average rate = {(iter_num + 1) / (end_time - start_time)}")
+
         available_squares = np.zeros((NUM_ROWS, NUM_COLS), dtype=np.bool8)
         available_squares.fill(True)
         available_squares = available_squares.tolist()
 
         # TODO placement with ascending ship dims is taking too long, need to fix
-        # option 1: add a timeout (but does that affect the distribution of overall placements)
-        # option 2: in the random ship placement, enumerate all possible options for each ship 
-        #  and pick randomly from those instead of retrying until one fits (also has benefit of detecting
-        #  if no placement is possible)
         placements = random_ships_placement(
             ship_dims=ship_dims,
             available_squares=available_squares,
@@ -54,13 +54,11 @@ def compute_placement_distribution(
                 left_col_idx : left_col_idx + ship_width,
             ] += 1
 
-        # print("placements:")
-        # print(ship_squares)
+        # TODO calculate symmetries (maybe not necessary, given that 1 million iterations 
+        # with ship dims in descending order is pretty fast and seems pretty even)
 
-        # print("total samples:")
-        # print(sampled_placements)
+        # TODO analyze exactly how asymmetrical the heatmap/distribution is (without symmetry)
 
-        # TODO calculate symmetries
         if with_symmetries:
             raise NotImplementedError
         else:
@@ -92,13 +90,13 @@ def generate_placement_distributions(
 @click.option("--ship-dims-file", "-i", type=str, required=True)
 @click.option("--with-symmetry", is_flag=True)
 @click.option("--random-seed", "-r", type=int)
-@click.option("--out-file", "-o", type=str)
+@click.option("--out-file-prefix", "-o", type=str)
 def cli(
     num_iterations: int,
     ship_dims_file: str,
     with_symmetry: bool,
     random_seed: Optional[int],
-    out_file: Optional[str],
+    out_file_prefix: Optional[str],
 ):
     ship_dims = []
     with open(ship_dims_file, "r") as in_file:
@@ -110,11 +108,12 @@ def cli(
         ship_dims, num_iterations, with_symmetry, random_seed
     )
 
-    if out_file is not None:
+    if out_file_prefix is not None:
         # save numpy array to file output in binary .npy format
-        np.save(out_file, placement_distribution)
+        np.save(out_file_prefix + ".npy", placement_distribution)
 
     ax = sns.heatmap(placement_distribution, linewidth=0.5)
+    plt.savefig(out_file_prefix + ".jpg")
     plt.show()
 
 

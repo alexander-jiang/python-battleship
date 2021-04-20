@@ -2,6 +2,8 @@ from tabulate import tabulate
 from game_grid import GameGrid
 from typing import Optional, List, Tuple
 
+from ship_placement import random_ships_placement
+
 
 SHIP_LOCATION_EMPTY = 0
 LOCATION_NOT_GUESSED = None
@@ -217,9 +219,49 @@ class BattleshipGameState:
                         row_idx, col_idx, new_value=SHIP_LOCATION_EMPTY
                     )
 
+    def clear_all_ship_placements(self, locations_grid: GameGrid):
+        for row_idx in range(self.num_rows):
+            for col_idx in range(self.num_cols):
+                locations_grid.update_grid(
+                    row_idx, col_idx, new_value=SHIP_LOCATION_EMPTY
+                )
+
+    def randomize_ship_placements(
+        self,
+        ship_dims: List[Tuple[int, int]],
+        our_ships: bool,
+    ):
+        available_squares = []
+        for r in range(self.num_rows):
+            row = []
+            for c in range(self.num_cols):
+                row.append(True)
+            available_squares.append(row)
+        random_ship_placements = random_ships_placement(
+            ship_dims,
+            available_squares=available_squares,
+            num_rows=self.num_rows,
+            num_cols=self.num_cols,
+            rotate_allowed=True,
+        )
+        for idx in range(len(random_ship_placements)):
+            ship_placement = random_ship_placements[idx]
+            top_row_idx, left_col_idx, ship_height, ship_width = ship_placement
+            self.place_ship(
+                top_row_idx=top_row_idx,
+                left_col_idx=left_col_idx,
+                ship_width=ship_width,
+                ship_height=ship_height,
+                ship_value=idx + 1,
+                is_our_ship=our_ships,
+            )
+            print(
+                f"placed ship {idx + 1}, dims {ship_height}, {ship_width} at {top_row_idx}, {left_col_idx}"
+            )
+
     def rotate_ship_placement(self, locations_grid: GameGrid, ship_value) -> bool:
         """
-        Rotate the ship around its top left corner. 
+        Rotate the ship around its top left corner.
         Returns False if the rotation isn't possible (and doesn't change the game state).
         """
         min_row_idx, max_row_idx = None, None
@@ -238,7 +280,10 @@ class BattleshipGameState:
                     if max_col_idx is None or col_idx > max_col_idx:
                         max_col_idx = col_idx
 
-        ship_width, ship_height = (max_col_idx - min_col_idx + 1, max_row_idx - min_row_idx + 1)
+        ship_width, ship_height = (
+            max_col_idx - min_col_idx + 1,
+            max_row_idx - min_row_idx + 1,
+        )
         self.clear_ship_placement(
             locations_grid, ship_value, ship_dims=(ship_width, ship_height)
         )
